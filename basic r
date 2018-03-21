@@ -1,0 +1,105 @@
+R Tutorial (https://cran.r-project.org/web/packages/data.table/vignettes/datatable-intro.html) script output 
+
+flights <- fread("flights14.csv")
+flights
+dim(flights)
+#1.a basics
+DT = data.table(ID = c("b","b","b","a","a","c"), a = 1:6, b = 7:12, c = 13:18)
+DT
+class(DT$ID)
+#1.b & c subset in rows
+ans <- flights[origin == "JFK" & month == 6L]
+head(ans)
+ans <- flights[1:2]
+ans
+ans <- flights[order(origin, -dest)]
+head(ans)
+#1.d select columns
+ans <- flights[, arr_delay]
+head(ans)
+ans <- flights[, list(arr_delay)]
+head(ans)
+ans <- flights[, .(arr_delay, dep_delay)]
+#or
+ans <- flights[, list(arr_delay, dep_delay)]
+head(ans)
+ans <- flights[, .(delay_arr = arr_delay, delay_dep = dep_delay)]
+#renames variable with title given before =
+head(ans)
+#1.e compute or do
+ans <- flights[, sum((arr_delay + dep_delay) < 0)]
+ans
+#1.f subset and do
+ans<-flights[origin=="JFK"&month==6L,.(m_arr=mean(arr_delay),m_dep=mean(dep_delay))]
+ans
+ans<-flights[origin=="JFK"&month==6L,length(dest)]
+ans
+#or can use .N instead of length
+ans<-flights[origin=="JFK"&month==6L, .N]
+ans
+#1.g refer to columns by names using =FALSE
+ans <- flights[, c("arr_delay", "dep_delay"), with = FALSE]
+head(ans)
+#subset all rows with x > 1
+DF = data.frame(x = c(1,1,1,2,2,3,3,3), y = 1:8)
+DF[DF$x > 1, ]
+#or using with
+DF[with(DF, x > 1), ]
+#deselect columns using - or !
+ans <- flights[, !c("arr_delay", "dep_delay"), with = FALSE]
+ans <- flights[, -c("arr_delay", "dep_delay"), with = FALSE]
+#specifying start and end column names
+ans <- flights[, year:day, with = FALSE]
+ans
+ans <- flights[, day:year, with = FALSE]
+ans
+ans <- flights[, -(year:day), with = FALSE]
+ans
+#2.a grouping using by
+ans <- flights[, .(.N), by = .(origin)]
+ans
+#or can do the below by dropping the .()
+ans <- flights[, .N, by = origin]
+ans
+ans <- flights[carrier == "AA", .N, by = origin]
+ans
+ans <- flights[carrier == "AA", .N, by = .(origin,dest)]
+head(ans)
+#I think I got a bit confused for the below bit because there's a lot of different variables included, I think the code is correct from looking at the work through but definitely need more practice at more complex groupings
+ans <- flights[carrier == "AA", .(mean(arr_delay), mean(dep_delay)), by = .(origin, dest, month)]
+ans
+#2.b using keyby to order by grouping variables 
+ans<-flights[carrier=="AA", .(mean(arr_delay), mean(dep_delay)), keyby=.(origin, dest, month)]
+ans
+#2.c chaining
+ans <- flights[carrier == "AA", .N, by = .(origin, dest)]
+#ordering ans by origin in ascending order and dest in descending order
+ans<-ans[order(origin, -dest)]
+head(ans)
+#chaining expressions
+ans <- flights[carrier == "AA", .N, by = .(origin, dest)][order(origin, -dest)]
+head(ans, 10)
+#[][]adds expressions together in a chain of operations
+#2.d expressions in  to find out which flights arrived/departed late
+ans <- flights[, .N, .(dep_delay>0, arr_delay>0)]
+ans
+#2.e multiple columns
+#exploring .SD
+DT
+DT[, print(.SD), by=ID]
+DT[, lapply(.SD,mean),by=ID]
+#specifying the columns we want the mean() of using .SDcols
+flights[carrier=="AA",lapply(.SD,mean),by=.(origin,dest,month),.SDcols=c("arr_delay","dep_delay")]
+#2.f subset .SD for each group
+#return first two rows for each month
+ans<-flights[,head(.SD,2),by=month]
+head(ans)
+#2.g keep j flexible for consisten syntax using exisitng functions
+#concatenate columns a and b for each group in ID
+DT[,.(val=c(a,b)),by=ID]
+#all values of columns a and b concatenated, returned as a list column
+DT[,.(val=list(c(a,b))),by=ID]
+#print()
+DT[,print(c(a,b)),by=ID]
+DT[,print(list(c(a,b))),by=ID]
+#I didn't quite understand the difference between these last two commands so will probably read the last section again another day!
